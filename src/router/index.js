@@ -63,7 +63,49 @@ const router = new VueRouter({
     path: 'test/',      
     name: 'test',     
     component: () => import('@/views/test.vue'), 
-    }
+    },
+       {
+  path: '/Calculate-stock',
+  name: 'Calculate-stock',
+  component: () => import('@/views/Calculate-stock.vue'), 
+      meta: {
+        pageTitle: 'Calculate-stock',
+        breadcrumb: [
+          {
+            text: 'Calculate-stock',
+            active: true,
+          },
+        ],
+      },
+  },
+  {
+      path: '/Raw-plan',
+      name: 'Raw-Plan',
+      component: () => import('@/views/Raw-plan.vue'),
+      meta: {
+        pageTitle: 'Raw-Plan',
+        breadcrumb: [
+          {
+            text: 'Raw-Plan',
+            active: true,
+          },
+        ],
+      },
+  },
+  {
+      path: '/Submit-product',
+      name: 'Submit-product',
+      component: () => import('@/views/Submit-product.vue'),
+      meta: {
+        pageTitle: 'Submit-product',
+        breadcrumb: [
+          {
+            text: 'Submit-product',
+            active: true,
+          },
+        ],
+      },
+  },
   ],
 })
 

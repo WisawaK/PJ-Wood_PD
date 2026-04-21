@@ -21,9 +21,26 @@ export default [
         route: 'test',
       },
       {
-        title: '02',
+        title: 'dashboard',
         route: 'Chart',
       },
+        {
+   title: 'Calculate stock',
+   route: 'Calculate-stock',
+   icon: 'CircleIcon',
+  },
+  
+  {
+   title: 'Raw plan',
+   route: 'Raw-Plan',
+   icon: 'CircleIcon',
+  },
+  
+  {
+   title: 'Import submit product',
+   route: 'Submit-product',
+   icon: 'CircleIcon',
+  },
     ],
   },
 
