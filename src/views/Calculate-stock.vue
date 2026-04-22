@@ -319,51 +319,55 @@ export default {
 
 .print-only { display: none; }
 
-/* -------------------------------------------------------------------------- */
-/* โซนแก้ปัญหา Print แล้วเมนูบัง (Absolute Isolation Method)                   */
-/* -------------------------------------------------------------------------- */
 @media print {
-  /* 1. ซ่อนเนื้อหาทั้งหมดใน body เพื่อไม่ให้มากวนพื้นที่ */
-  body * {
-    visibility: hidden;
+  /* บังคับซ่อนทุกอย่างยกเว้นส่วนที่ต้องการพิมพ์ */
+  @page {
+    margin: 1cm;
+    size: A4;
   }
 
-  /* 2. บังคับซ่อนเมนู Navbar Sidebar ต่างๆ ของ Template (ป้องกันการกินพื้นที่กระดาษ) */
-  nav, aside, header, footer, .sidebar, .menu, .navbar, .header-navbar, .main-menu {
+  html, body {
+    width: 210mm;
+    height: 297mm;
+  }
+
+  /* ซ่อนทุกอย่างในหน้าเว็บ */
+  body > *:not(#app),
+  #app > *:not(.card),
+  .card > *:not(#print-isolation-layer),
+  nav, header, footer, aside, .sidebar, .menu, 
+  [class*="sidebar"], [class*="menu"], [class*="nav"] {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  /* 3. เปิดการมองเห็นเฉพาะโครงสร้างเอกสารที่เราจะปริ้น */
-  #print-isolation-layer, #print-isolation-layer * {
-    visibility: visible;
+  .no-print { 
+    display: none !important; 
+    visibility: hidden !important;
+  }
+  
+  .print-only { 
+    display: block !important; 
+    visibility: visible !important;
   }
 
-  /* 4. ดึงเอกสารที่จะปริ้นหลุดออกมาจาก Layout เดิม แล้วแปะทับมุมซ้ายบนของหน้าจอ */
   #print-isolation-layer {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    background-color: white;
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-
-  /* 5. จัดรูปแบบตารางกระดาษ */
+  
   .table-print { 
     width: 100%; 
     border-collapse: collapse; 
     th, td { 
       border: 1px solid black !important; 
-      padding: 8px 5px; 
+      padding: 5px; 
       font-size: 10pt; 
     } 
-  }
-
-  /* 6. ตั้งค่าหน้ากระดาษ */
-  @page {
-    size: A4;
-    margin: 1cm;
   }
 }
 </style>
