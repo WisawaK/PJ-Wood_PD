@@ -19,8 +19,9 @@
             </template>
             <v-select
               v-model="searchTemp"
-              :options="allPlans"
-              :filter="customFilter"
+              :options="searchOptions"
+              :filterable="false"
+              @search="onSearch"
               label="display"
               placeholder="พิมพ์เพื่อค้นหาเร็ว..."
               @input="handleSelect"
@@ -178,21 +179,13 @@
         </table>
 
         <div style="display: flex; justify-content: space-between; text-align: center; margin-top: 50px;">
-          <div style="width: 30%;">
-            <p style="margin: 5px 0;">__________________________</p>
-            <p style="margin: 5px 0;">ผู้ออกเอกสาร</p>
-            <p style="margin: 5px 0;">วันที่: ___/___/___</p>
-          </div>
+          
           <div style="width: 30%;">
             <p style="margin: 5px 0;">__________________________</p>
             <p style="margin: 5px 0;"><strong>ฝ่ายผลิต (ผู้รับงาน)</strong></p>
             <p style="margin: 5px 0;">วันที่: ___/___/___</p>
           </div>
-          <div style="width: 30%;">
-            <p style="margin: 5px 0;">__________________________</p>
-            <p style="margin: 5px 0;">ผู้ตรวจสอบ / QC</p>
-            <p style="margin: 5px 0;">วันที่: ___/___/___</p>
-          </div>
+        
         </div>
       </div>
     </div>
@@ -210,10 +203,22 @@ export default {
   directives: { Ripple },
   data() {
     return {
-      loading: false, allPlans: [], stockMap: {}, bomDatabase: {},
-      searchTemp: null, selectedPlan: null, totalPoQty: 0, dailyTarget: 0,
-      tableData: [], filterPO: '', filterSAP: '', filterName: '', filterColor: '',
-      currentPage: 1, perPage: 15
+      loading: false,
+      allPlans: [],
+      stockMap: {},
+      bomDatabase: {},
+      searchTemp: null,
+      searchOptions: [], // เพิ่ม searchOptions สำหรับ v-select
+      selectedPlan: null,
+      totalPoQty: 0,
+      dailyTarget: 0,
+      tableData: [],
+      filterPO: '',
+      filterSAP: '',
+      filterName: '',
+      filterColor: '',
+      currentPage: 1,
+      perPage: 15
     }
   },
   computed: {
@@ -230,7 +235,9 @@ export default {
       return this.filteredPlans.slice(start, start + this.perPage);
     }
   },
-  mounted() { this.fetchData() },
+  mounted() {
+    this.fetchData()
+  },
   methods: {
     async fetchData(force = false) {
       this.loading = true
@@ -238,15 +245,21 @@ export default {
         const urlPlan = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQUfe59fFqNK3a6yzya8ZB4W_2dqqBg0c_06ZpH3QQ65J53FfxoEO5iPFW9LEksMEexwLOx0XTb5UcF/pub?output=csv"
         const urlStock = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShU_0KepJ0kBsIYP6zPhKVuZEE4TbCDyvx81yzPMBbdtO3SJp1kf1bRc4hbFfs4ErULD0oDyK39CkE/pub?output=csv"
         const urlBOM = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-sDov5Hl1nWrRBz9jCiiBeatitpYjZp0fqPYngNmvdY1teoDLQrhPBNkMZATc-rktKV37X2Q1qzkm/pub?output=csv"
-        const [resPlan, resStock, resBOM] = await Promise.all([axios.get(urlPlan), axios.get(urlStock), axios.get(urlBOM)])
         
+        const [resPlan, resStock, resBOM] = await Promise.all([
+          axios.get(urlPlan),
+          axios.get(urlStock),
+          axios.get(urlBOM)
+        ])
+        
+        // แก้: ลบ Object.freeze() ออก
         const tempStockMap = {}
         resStock.data.split(/\r?\n/).forEach((line, i) => {
           if (i === 0 || !line) return
           const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
           tempStockMap[(cols[1] || "").replace(/"/g, '').trim()] = parseInt((cols[7] || "0").replace(/[",]/g, '')) || 0
         })
-        this.stockMap = Object.freeze(tempStockMap)
+        this.stockMap = tempStockMap // ลบ Object.freeze()
 
         const tempDB = {}
         let lastSap = ""
@@ -257,52 +270,117 @@ export default {
           if (currentSap) lastSap = currentSap
           if (lastSap) {
             if (!tempDB[lastSap]) tempDB[lastSap] = []
-            tempDB[lastSap].push({ code: (c[2] || "").replace(/"/g, ''), name: (c[3] || "").replace(/"/g, ''), perUnit: parseFloat((c[5] || "0").replace(/[",]/g, '')) || 0 })
+            tempDB[lastSap].push({
+              code: (c[2] || "").replace(/"/g, ''),
+              name: (c[3] || "").replace(/"/g, ''),
+              perUnit: parseFloat((c[5] || "0").replace(/[",]/g, '')) || 0
+            })
           }
         })
-        this.bomDatabase = Object.freeze(tempDB)
+        this.bomDatabase = tempDB // ลบ Object.freeze()
 
-        this.allPlans = Object.freeze(resPlan.data.split(/\r?\n/).slice(1).map(line => {
+        this.allPlans = resPlan.data.split(/\r?\n/).slice(1).map(line => {
           if (!line) return null
           const c = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
-          return { po: (c[2] || "").replace(/"/g, ''), sap: (c[3] || "").replace(/"/g, ''), name: (c[6] || "").replace(/"/g, ''), color: (c[7] || "").replace(/"/g, ''), qty: parseInt((c[8] || "0").replace(/[",]/g, '')) || 0, display: `PO: ${c[2]} | SAP: ${c[3]} | ${c[6]}` }
-        }).filter(v => v !== null).sort((a, b) => a.name.localeCompare(b.name, 'th')))
-      } catch (err) { console.error(err) } finally { this.loading = false }
-    },
-    handleSelect(val) {
-      if (val) {
-        this.selectedPlan = val; this.totalPoQty = val.qty; this.dailyTarget = val.qty;
-        this.updateCalculation();
-        setTimeout(() => { this.searchTemp = null; }, 50);
+          return {
+            po: (c[2] || "").replace(/"/g, ''),
+            sap: (c[3] || "").replace(/"/g, ''),
+            name: (c[6] || "").replace(/"/g, ''),
+            color: (c[7] || "").replace(/"/g, ''),
+            qty: parseInt((c[8] || "0").replace(/[",]/g, '')) || 0,
+            display: `PO: ${c[2]} | SAP: ${c[3]} | ${c[6]}`
+          }
+        }).filter(v => v !== null).sort((a, b) => a.name.localeCompare(b.name, 'th')) // ลบ Object.freeze()
+        
+        this.searchOptions = this.allPlans // เริ่มต้นด้วยข้อมูลทั้งหมด
+      } catch (err) {
+        console.error(err)
+      } finally {
+        this.loading = false
       }
     },
+    
+    // เพิ่มฟังก์ชันค้นหาแบบ debounce
+    onSearch(search, loading) {
+      if (search.length) {
+        const searchLower = search.toLowerCase()
+        this.searchOptions = this.allPlans.filter(o => 
+          o.display.toLowerCase().includes(searchLower)
+        ).slice(0, 50) // จำกัดแค่ 50 รายการ
+      } else {
+        this.searchOptions = this.allPlans.slice(0, 50)
+      }
+    },
+    
+    handleSelect(val) {
+      if (val) {
+        this.selectedPlan = val
+        this.totalPoQty = val.qty
+        this.dailyTarget = val.qty
+        this.updateCalculation()
+        this.$nextTick(() => {
+          this.searchTemp = null
+        })
+      }
+    },
+    
     updateCalculation() {
-      if (!this.selectedPlan) return;
+      if (!this.selectedPlan) return
       const components = this.bomDatabase[this.selectedPlan.sap] || []
-      this.tableData = Object.freeze(components.map(item => {
+      this.tableData = components.map(item => {
         const need = item.perUnit * this.dailyTarget
         const stock = this.stockMap[item.code] || 0
-        return { partCode: item.code, itemName: item.name, perUnit: item.perUnit, totalNeed: need, stock, toProduce: Math.max(0, need - stock) }
-      }))
+        return {
+          partCode: item.code,
+          itemName: item.name,
+          perUnit: item.perUnit,
+          totalNeed: need,
+          stock,
+          toProduce: Math.max(0, need - stock)
+        }
+      }) // ลบ Object.freeze()
     },
-    clearSelection() { this.selectedPlan = null; this.tableData = []; this.totalPoQty = 0; this.dailyTarget = 0; },
-    customFilter: (options, search) => options.filter(o => o.display.toLowerCase().includes(search.toLowerCase())).slice(0, 50),
     
-    // ฟังก์ชัน Print แบบใหม่: สร้างหน้าต่างจำลองขึ้นมาพิมพ์เฉพาะเนื้อหา
+    clearSelection() {
+      this.selectedPlan = null
+      this.tableData = []
+      this.totalPoQty = 0
+      this.dailyTarget = 0
+    },
+    
+    // แก้ฟังก์ชันพิมพ์ใหม่ - ไม่ reload หน้า
     printOrder() {
-      const printContents = document.getElementById('print-content').innerHTML;
-      const originalContents = document.body.innerHTML;
-
-      // สลับเอาเนื้อหาใน body ออกแล้วใส่เฉพาะตาราง
-      document.body.innerHTML = printContents;
+      const printWindow = window.open('', '_blank', 'width=800,height=600')
+      const printContent = document.getElementById('print-content').innerHTML
       
-      // สั่งพิมพ์
-      window.print();
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>ใบสั่งผลิตชิ้นส่วน</title>
+          <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+          <style>
+            body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 20px; }
+            @media print {
+              body { margin: 0; }
+              @page { margin: 1cm; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent}
+        </body>
+        </html>
+      `)
       
-      // คืนค่าหน้าเว็บเดิมกลับมา
-      document.body.innerHTML = originalContents;
-      // รีโหลดเพื่อป้องกัน Event Vue หลุด
-      window.location.reload();
+      printWindow.document.close()
+      printWindow.focus()
+      
+      setTimeout(() => {
+        printWindow.print()
+        printWindow.close()
+      }, 250)
     }
   }
 }
@@ -312,7 +390,6 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
 @import '~vue-select/dist/vue-select.css';
 
-/* ปรับแต่ง v-select ให้เหมือนในรูป */
 ::v-deep .custom-v-select {
   .vs__dropdown-toggle {
     border: 1px solid #d8d6de !important;
