@@ -182,9 +182,9 @@ export default {
       hasSaveFile: false,
       globalKeys: {},
       
-      // --- Snake Game ---
+      // --- Snake Game --- (เปลี่ยนจาก 30 เป็น 40 คอลัมน์)
       s_gameState: 'SELECT_SNAKE', s_snakeType: 'green', s_snakeName: 'ยังไม่เลือก', s_baseSpeed: 150,
-      s_gridCols: 30, s_gridRows: 20, s_cellSize: 20, s_snake: [], s_food: { x: 0, y: 0 },
+      s_gridCols: 40, s_gridRows: 20, s_cellSize: 20, s_snake: [], s_food: { x: 0, y: 0 },
       s_dir: { x: 0, y: -1 }, s_nextDir: { x: 0, y: -1 }, s_score: 0, s_interval: null, s_speed: 150,
 
       // --- Rogue Survivor ---
