@@ -21,7 +21,7 @@ export default [
         route: 'test',
       },
       {
-        title: 'dashboard',
+        title: 'dashboard-Test',
         route: 'Chart',
       },
         {

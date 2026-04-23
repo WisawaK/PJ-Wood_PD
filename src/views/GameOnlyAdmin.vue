@@ -18,7 +18,7 @@
         <div class="game-card rogue-card" @click="launchGame('ROGUE')">
           <div class="card-icon">🛡️</div>
           <h2>Rogue Survivor</h2>
-          <p>เอาชีวิตรอด 6 คลาส จอกว้าง มีระบบสกิล E</p>
+          <p>เอาชีวิตรอด 6 คลาส จอกว้าง มีระบบสกิล E (กดค้างยิงได้)</p>
         </div>
       </div>
     </div>
@@ -80,6 +80,7 @@
         @mousemove="r_onMouseMove"
         @mousedown.prevent="r_onMouseDown"
         @mouseup.prevent="r_onMouseUp"
+        @mouseleave="r_onMouseLeave"
         @contextmenu.prevent
       >
         <div v-if="r_isAiming" class="r-crosshair" :style="{ left: r_mouseX + 'px', top: r_mouseY + 'px' }">🎯</div>
@@ -124,15 +125,14 @@
         </div>
 
         <div v-if="r_gameState === 'SELECT_CHAR'" class="game-overlay">
-          <h2>เลือกคลาสฮีโร่ของคุณ 🛡️ (สกิล E ใหม่!)</h2>
+          <h2>เลือกคลาสฮีโร่ของคุณ 🛡️ (สกิล E)</h2>
           <div class="r-char-selection-grid">
             <div class="r-char-card" @click="r_selectChar('m1')"><div class="sprite preview m-knight"></div><h3>นักรบดำ (ช)</h3><p>ดาบใหญ่/กระโดดสับ</p></div>
             <div class="r-char-card" @click="r_selectChar('m2')"><div class="sprite preview m-hunter"></div><h3>นายพราน (ช)</h3><p>ธนูคู่/ม้วนตัวหลบ</p></div>
             <div class="r-char-card" @click="r_selectChar('m3')"><div class="sprite preview m-sorcerer"></div><h3>นักเวทย์พรต (ช)</h3><p>คาถา/ระเบิดพลังไฟ</p></div>
             <div class="r-char-card" @click="r_selectChar('f1')"><div class="sprite preview f-assassin"></div><h3>นินจาสาว (ญ)</h3><p>มีดสั้น/เทเลพอร์ต</p></div>
             <div class="r-char-card" @click="r_selectChar('f2')"><div class="sprite preview f-priestess"></div><h3>นักบวชหญิง (ญ)</h3><p>คทาพลังแสง/ฟื้น HP</p></div>
-            <div class="r-char-card" @click="r_selectChar('f3')"><div class="sprite preview f-gunner"></div><h3>นักล่าปืน (ญ)
-            </h3><p>ปืนลูกซอง/กราดยิง</p></div>
+            <div class="r-char-card" @click="r_selectChar('f3')"><div class="sprite preview f-gunner"></div><h3>นักล่าปืน (ญ)</h3><p>ปืนลูกซอง/กราดยิง</p></div>
           </div>
         </div>
 
@@ -165,7 +165,7 @@
       </div>
       
       <div class="controls-hint-box" v-if="r_gameState !== 'SLOTS'">
-        <p>⌨️ <strong>WASD</strong> เดิน | <strong>[Spacebar]</strong> หรือ <strong>[คลิกซ้าย]</strong> โจมตี | <strong>E</strong> ใช้สกิล | <strong>P</strong> พัก</p>
+        <p>⌨️ <strong>WASD</strong> เดิน | <strong>[Spacebar] / [คลิกซ้าย] กดค้าง</strong> โจมตีต่อเนื่อง | <strong>E</strong> ใช้สกิล | <strong>P</strong> พัก</p>
         <p>🖱️ <strong>[คลิกขวาค้าง]</strong> = เล็งยิงเอง | <strong>[ปล่อย]</strong> = ออโต้ล็อคเป้าใกล้สุด</p>
       </div>
     </div>
@@ -182,14 +182,15 @@ export default {
       hasSaveFile: false,
       globalKeys: {},
       
-      // --- Snake Game --- (เปลี่ยนจาก 30 เป็น 40 คอลัมน์)
+      // --- Snake Game ---
       s_gameState: 'SELECT_SNAKE', s_snakeType: 'green', s_snakeName: 'ยังไม่เลือก', s_baseSpeed: 150,
-      s_gridCols: 40, s_gridRows: 20, s_cellSize: 20, s_snake: [], s_food: { x: 0, y: 0 },
+      s_gridCols: 30, s_gridRows: 20, s_cellSize: 20, s_snake: [], s_food: { x: 0, y: 0 },
       s_dir: { x: 0, y: -1 }, s_nextDir: { x: 0, y: -1 }, s_score: 0, s_interval: null, s_speed: 150,
 
       // --- Rogue Survivor ---
       r_gameState: 'SLOTS', r_saveSlots: [null, null, null], r_currentSlot: -1,
-      r_mouseX: 0, r_mouseY: 0, r_isAiming: false,
+      r_mouseX: 0, r_mouseY: 0, r_isAiming: false, 
+      r_isAttacking: false, // ตัวแปรเช็คการกดโจมตีค้าง
       
       r_player: { 
         x: 400, y: 300, r: 15, charId: '', className: '', speed: 3, hp: 100, maxHp: 100, 
@@ -255,7 +256,8 @@ export default {
          r_enemies: parsed.r_enemies, r_bullets: parsed.r_bullets, r_enemyBullets: parsed.r_enemyBullets, r_gems: parsed.r_gems, r_coins: parsed.r_coins,
          r_enemyId: parsed.r_enemyId, r_bulletId: parsed.r_bulletId, r_gemId: parsed.r_gemId, r_coinId: parsed.r_coinId, r_textId: parsed.r_textId
       });
-      this.globalKeys = {}; this.r_slashes = []; this.r_floatingTexts = []; this.r_isAiming = false;
+      this.globalKeys = {}; this.r_slashes = []; this.r_floatingTexts = []; 
+      this.r_isAiming = false; this.r_isAttacking = false; // Reset States
       this.r_shopItems = { maxHp: { label: '❤️ Max HP +50', cost: 50, run: () => { this.r_player.maxHp += 50; this.r_player.hp += 50; } }, damage: { label: '⚔️ พลังโจมตี +15', cost: 40, run: () => { this.r_player.damage += 15; } }, atkSpeed: { label: '🔥 โจมตีรัวขึ้น 10%', cost: 60, run: () => { this.r_player.atkSpeed *= 0.9; } }, heal: { label: '🩹 ฟื้นฟูเลือดเต็ม', cost: 30, run: () => { this.r_player.hp = this.r_player.maxHp; } }, skillCD: { label: '🌀 สกิลคูลดาวน์เร็วขึ้น 20%', cost: 80, run: () => { this.r_player.skillCD *= 0.8; } }, };
     },
     r_newGameSlot(index) { this.r_currentSlot = index; this.r_gameState = 'SELECT_CHAR'; },
@@ -285,11 +287,15 @@ export default {
       }
       if (this.appState === 'SNAKE') this.s_handleKeydown(e);
       else if (this.appState === 'ROGUE') {
-         if (e.code === 'Space') this.r_playerAttack();
+         if (e.code === 'Space') { this.r_isAttacking = true; this.r_playerAttack(); } // กดค้างโจมตี
          else if (e.code === 'KeyE') this.r_playerSkill();
       }
     },
-    handleKeyup(e) { this.$set(this.globalKeys, e.code, false); },
+    handleKeyup(e) { 
+      this.$set(this.globalKeys, e.code, false); 
+      // ปล่อยปุ่ม Space เลิกโจมตี
+      if (this.appState === 'ROGUE' && e.code === 'Space') this.r_isAttacking = false;
+    },
 
     // === Snake Game ===
     s_togglePause() { if (this.s_gameState === 'PLAYING') { this.s_gameState = 'PAUSED'; clearInterval(this.s_interval); } else if (this.s_gameState === 'PAUSED') { this.s_gameState = 'PLAYING'; this.s_interval = setInterval(this.s_gameLoop, this.s_speed); } },
@@ -321,13 +327,21 @@ export default {
     },
     r_onMouseDown(e) {
       if (this.r_gameState !== 'PLAYING') return;
-      if (e.button === 0) { this.r_playerAttack(); } 
-      else if (e.button === 2) { this.r_isAiming = true; this.r_player.facingLeft = this.r_mouseX < this.r_player.x; }
+      if (e.button === 0) { this.r_isAttacking = true; this.r_playerAttack(); } // คลิกซ้ายค้างโจมตี
+      else if (e.button === 2) { this.r_isAiming = true; this.r_player.facingLeft = this.r_mouseX < this.r_player.x; } // คลิกขวาเล็ง
     },
-    r_onMouseUp(e) { if (e.button === 2) { this.r_isAiming = false; } },
+    r_onMouseUp(e) { 
+      if (e.button === 0) { this.r_isAttacking = false; } // ปล่อยคลิกซ้าย
+      if (e.button === 2) { this.r_isAiming = false; } // ปล่อยคลิกขวา
+    },
+    r_onMouseLeave() {
+      // กันเมาส์หลุดจอแล้วปืนค้าง
+      this.r_isAttacking = false;
+      this.r_isAiming = false;
+    },
     r_togglePause() {
       if (this.r_gameState === 'PLAYING') { this.r_gameState = 'PAUSED'; clearInterval(this.r_gameLoop); clearInterval(this.r_spawnTimer); clearInterval(this.r_waveTimer); this.saveGameData(); } 
-      else if (this.r_gameState === 'PAUSED') { this.r_gameState = 'PLAYING'; this.r_gameLoop = setInterval(this.r_update, 1000 / 60); this.r_spawnTimer = setInterval(this.r_spawnEnemy, Math.max(800, 2000 - (this.r_wave * 100))); this.r_waveTimer = setInterval(() => { this.r_timeLeft--; if (this.r_timeLeft <= 0) this.r_finishWave(); }, 1000); }
+      else if (this.r_gameState === 'PAUSED') { this.r_gameState = 'PLAYING'; this.r_gameLoop = setInterval(this.r_update, 1000 / 60); this.r_spawnTimer = setInterval(this.r_spawnEnemy, Math.max(500, 1500 - (this.r_wave * 100))); this.r_waveTimer = setInterval(() => { this.r_timeLeft--; if (this.r_timeLeft <= 0) this.r_finishWave(); }, 1000); }
     },
     r_objectStyle(obj) { const size = (obj.r || 5) * 2; return { left: `${obj.x - (obj.r || 5)}px`, top: `${obj.y - (obj.r || 5)}px`, width: `${size}px`, height: `${size}px` }; },
     r_slashStyle(s) { return { left: `${s.x - s.r}px`, top: `${s.y - s.r}px`, width: `${s.r*2}px`, height: `${s.r*2}px`, opacity: s.life/15 }; },
@@ -355,7 +369,7 @@ export default {
       clearInterval(this.r_gameLoop); clearInterval(this.r_spawnTimer); clearInterval(this.r_waveTimer);
       
       this.r_gameLoop = setInterval(this.r_update, 1000 / 60);
-      this.r_spawnTimer = setInterval(this.r_spawnEnemy, Math.max(800, 2000 - (this.r_wave * 100)));
+      this.r_spawnTimer = setInterval(this.r_spawnEnemy, Math.max(500, 1500 - (this.r_wave * 100)));
       this.r_waveTimer = setInterval(() => { this.r_timeLeft--; if (this.r_timeLeft <= 0) this.r_finishWave(); }, 1000);
       this.saveGameData();
     },
@@ -529,6 +543,11 @@ export default {
       p.x += dx; p.y += dy;
 
       const now = Date.now();
+      
+      // ถ้ายิงค้าง (คลิกซ้ายหรือ Spacebar) ให้เรียก playerAttack ต่อเนื่อง
+      if (this.r_isAttacking) {
+        this.r_playerAttack();
+      }
 
       this.r_bullets.forEach((b, i) => { 
         b.x += b.vx; b.y += b.vy; 
@@ -600,6 +619,7 @@ export default {
       clearInterval(this.r_gameLoop); clearInterval(this.r_spawnTimer); clearInterval(this.r_waveTimer); 
       this.r_enemies = []; this.r_enemyBullets = [];
       this.r_player.skillReady = true; this.r_player.skillCDTimer = 0; // Reset Skill on Wave End
+      this.r_isAttacking = false; // Reset Attack status
       this.saveGameData();
     },
     r_buyItem(key) { const item = this.r_shopItems[key]; if (this.r_gold >= item.cost) { this.r_gold -= item.cost; item.run(); item.cost = Math.floor(item.cost * 1.3); } },
@@ -610,6 +630,7 @@ export default {
         
         if (this.r_player.level % 5 === 0) {
           this.r_gameState = 'LEVEL_UP';
+          this.r_isAttacking = false; // ป้องกันปืนค้างตอนอัปเวล
           const uMaps = [
             { name: 'spd', label: '👟 เดินไวขึ้น', run: () => this.r_player.speed += 0.3 }, 
             { name: 'dmg', label: '⚔️ พลังโจมตีขึ้น', run: () => this.r_player.damage += 5 },
@@ -626,6 +647,7 @@ export default {
     r_gameOver() { 
       this.r_gameState = 'GAMEOVER'; 
       clearInterval(this.r_gameLoop); clearInterval(this.r_spawnTimer); clearInterval(this.r_waveTimer); 
+      this.r_isAttacking = false;
       this.r_clearCurrentSlot(); 
     },
     r_dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -690,7 +712,7 @@ h1, h2, h3 { font-family: 'Press Start 2P', 'Sarabun', cursive; margin-bottom: 1
 .r-gold-text { color: #f1c40f; text-shadow: 1px 1px 0 #000; } 
 .r-timer { font-weight: bold; color: #ff9f43; font-size: 1.1rem; margin-top: 0; text-align: left;} 
 .skill-status { font-family: 'Press Start 2P', cursive; font-size: 0.7rem; padding: 5px 10px; border-radius: 6px; border: 2px solid; }
-.skill-status.ready { background: #2ecc71; color: #fff; border-color: #27ae60; animation: pulse Ready 1.5s infinite; }
+.skill-status.ready { background: #2ecc71; color: #fff; border-color: #27ae60; animation: pulseReady 1.5s infinite; }
 .skill-status.cooldown { background: #34495e; color: #aaa; border-color: #2c3e50; }
 @keyframes pulseReady { 0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); } }
 

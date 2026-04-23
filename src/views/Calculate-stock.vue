@@ -14,7 +14,7 @@
           <b-form-group>
             <template #label>
               <span class="text-primary font-weight-bold" style="font-size: 1.1rem;">
-                🔍 ค้นหาด่วน (PO | SAP | รายการ | สี):
+                🔍 ค้นหารายการรวม | PO | FG Code/SAP | รายการ | สี :
               </span>
             </template>
             <v-select
@@ -23,14 +23,14 @@
               :filterable="false"
               @search="onSearch"
               label="display"
-              placeholder="พิมพ์เพื่อค้นหาเร็ว..."
+              placeholder="---- Search ----"
               @input="handleSelect"
               class="bg-white shadow-sm custom-v-select"
             >
               <template #no-options="{ search }">
-                {{ search.length ? 'ไม่พบข้อมูล "' + search + '"' : 'กรุณาพิมพ์เพื่อค้นหา' }}
-              </template>
-            </v-select>
+            {{ search.length ? 'ไม่พบข้อมูล "' + search + '"' : 'กรุณาพิมพ์เพื่อค้นหา' }}
+          </template>
+        </v-select>
           </b-form-group>
         </b-col>
         
@@ -64,13 +64,13 @@
                 <th style="width: 15%">PO BATCH
                   <b-form-input v-model="filterPO" size="sm" class="mt-1 mt-input" @input="currentPage = 1" />
                 </th>
-                <th style="width: 20%">CODE SAP
+                <th style="width: 20%">FG CODE/SAP
                   <b-form-input v-model="filterSAP" size="sm" class="mt-1 mt-input" @input="currentPage = 1" />
                 </th>
-                <th style="width: 45%">DESCRIPTION (รายการ)
+                <th style="width: 25%">DESCRIPTION (รายการ)
                   <b-form-input v-model="filterName" size="sm" class="mt-1 mt-input" @input="currentPage = 1" />
                 </th>
-                <th style="width: 15%">COLOR (สี)
+                <th style="width: 20%">COLOR (สี)
                   <b-form-input v-model="filterColor" size="sm" class="mt-1 mt-input" @input="currentPage = 1" />
                 </th>
               </tr>
